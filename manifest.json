@@ -1,0 +1,11 @@
+{
+  "name": "Aushadhi Team Roster",
+  "short_name": "Aushadhi",
+  "description": "6-month MuniShri volunteer roster with Excel database",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6fa",
+  "theme_color": "#1e3a5f",
+  "icons": [{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
