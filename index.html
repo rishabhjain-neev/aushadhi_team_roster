@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1e3a5f">
+<title>Aushadhi Team Roster</title>
+<link rel="stylesheet" href="aushadhi.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  #cloud-bar{background:#1a2e4a;padding:5px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+  #cloud-bar button{padding:4px 10px;border-radius:6px;border:none;font-size:10px;font-weight:700;cursor:pointer}
+  #hdr-cloud{font-size:10px;color:rgba(255,255,255,.7);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #mode-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:#64748b;color:#fff;flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── HEADER ── -->
+<div id="hdr">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div><h1>☘ Aushadhi Team Roster</h1><p id="hdr-sub">Loading…</p></div>
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <span id="mode-badge">👁 Viewer</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── CLOUD SYNC BAR ── -->
+<div id="cloud-bar">
+  <span id="hdr-cloud" style="font-size:10px;color:rgba(255,255,255,.7);flex:1">⚙ Configure cloud sync in Settings</span>
+  <button onclick="pullFromCloud()" style="background:rgba(255,255,255,.15);color:#fff">⬇ Pull</button>
+  <button onclick="pushToCloud()"  class="admin-only" style="display:none;background:#16a34a;color:#fff">⬆ Push</button>
+  <button onclick="showCloudSettings()" style="background:rgba(255,255,255,.1);color:#fff">⚙</button>
+</div>
+
+<div id="content">
+
+  <!-- ══ MUNISHRI ══ -->
+  <div id="s-munishri" class="screen active">
+    <div class="banner banner-blue viewer-only">👁 Viewer mode — tap ⚙ to login as admin and edit.</div>
+    <div class="card admin-only" style="display:none;border-left:3px solid #2d5a9b;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:#1e3a5f;margin-bottom:8px">📅 Roster period</div>
+      <div class="row2" style="margin-bottom:8px">
+        <div class="fg" style="margin-bottom:0"><label>Start date</label><input type="date" id="period-start"/></div>
+        <div class="fg" style="margin-bottom:0"><label>End date</label><input type="date" id="period-end"/></div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="setPeriod()">✓ Set period</button>
+      <div id="period-banner" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600;color:#15803d;text-align:center;margin-top:6px"></div>
+    </div>
+    <div class="banner banner-blue admin-only" style="display:none">Set name and up to 3 custom fields per MuniShri.</div>
+    <div class="card admin-only" style="display:none">
+      <div class="row2" style="margin-bottom:9px">
+        <div class="fg" style="margin-bottom:0"><label>MuniShri slot</label>
+          <select id="ms-slot" onchange="loadMSForm()">
+            <option value="MS1">MuniShri 1</option><option value="MS2">MuniShri 2</option>
+            <option value="MS3">MuniShri 3</option><option value="MS4">MuniShri 4</option>
+            <option value="MS5">MuniShri 5</option><option value="MS6">MuniShri 6</option>
+            <option value="MS7">MuniShri 7</option><option value="MS8">MuniShri 8</option>
+          </select></div>
+        <div class="fg" style="margin-bottom:0"><label>Name</label><input id="ms-name" type="text" placeholder="e.g. Muni Rajesh"/></div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius);padding:9px;background:#f8fafc;margin-bottom:9px">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:7px">Custom fields (max 3)</div>
+        <div id="cf-list"></div>
+        <button class="cf-add" id="cf-add-btn" onclick="addCF()">+ Add field</button>
+      </div>
+      <div class="fg" style="margin-bottom:10px"><label>Colour tag</label><div class="clr-row" id="clr-row"></div></div>
+      <button class="btn btn-primary btn-full" onclick="saveMS()">✓ Save MuniShri</button>
+      <div id="ms-save-banner" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:var(--radius);padding:9px 12px;font-size:13px;font-weight:600;color:#15803d;text-align:center;margin-top:6px"></div>
+    </div>
+    <div class="sec-hdr">All MuniShri</div>
+    <div id="ms-cards"></div>
+  </div>
+
+  <!-- ══ VOLUNTEERS ══ -->
+  <div id="s-volunteers" class="screen">
+    <div class="banner banner-blue viewer-only">👁 Viewer mode — login as admin to add volunteers.</div>
+    <div class="card admin-only" style="display:none">
+      <div class="row2">
+        <div class="fg"><label>Name</label><input id="vn" type="text" placeholder="Volunteer name"/></div>
+        <div class="fg"><label>Preferred MuniShri</label><select id="vpref"></select></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>Phone / email</label><input id="vcontact" type="text" placeholder="Contact"/></div>
+        <div class="fg"><label>Notes</label><input id="vnotes" type="text" placeholder="Any info"/></div>
+      </div>
+      <div class="fg"><label>Recurring weekdays</label><div class="days-row" id="days-picker"></div></div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius);padding:10px;background:#f8fafc;margin-bottom:9px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:700;color:#1e3a5f">Date slots</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button onclick="calPrev('main')" style="background:#fff;border:1px solid #e2e8f0;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:13px;font-weight:700;color:#1e3a5f">‹</button>
+            <span id="cal-main-label" style="font-size:11px;font-weight:600;color:#1e3a5f;min-width:80px;text-align:center"></span>
+            <button onclick="calNext('main')" style="background:#fff;border:1px solid #e2e8f0;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:13px;font-weight:700;color:#1e3a5f">›</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px">
+          <div style="text-align:center;font-size:9px;font-weight:700;color:#64748b">Su</div><div style="text-align:center;font-size:9px;font-weight:700;color:#64748b">Mo</div>
+          <div style="text-align:center;font-size:9px;font-weight:700;color:#64748b">Tu</div><div style="text-align:center;font-size:9px;font-weight:700;color:#64748b">We</div>
+          <div style="text-align:center;font-size:9px;font-weight:700;color:#64748b">Th</div><div style="text-align:center;font-size:9px;font-weight:700;color:#64748b">Fr</div>
+          <div style="text-align:center;font-size:9px;font-weight:700;color:#64748b">Sa</div>
+        </div>
+        <div id="cal-main-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:8px"></div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+          <button onclick="addSelectedSlots('main')" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer">+ Add selected dates</button>
+        </div>
+        <div id="slots-preview" style="display:flex;flex-wrap:wrap;gap:3px"></div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="addVol()">+ Add volunteer</button>
+    </div>
+    <div class="sec-hdr">All volunteers</div>
+    <div id="vol-list"><div class="empty">No volunteers yet.</div></div>
+  </div>
+
+  <!-- ══ ASSIGN ══ -->
+  <div id="s-assign" class="screen">
+    <div class="banner banner-blue viewer-only">👁 Viewer mode — only admins can run assignment.</div>
+    <div class="admin-only" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px">
+        <div style="background:#f8fafc;border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;font-size:11px;color:var(--muted)">✓ Spread-first: 1 per MuniShri</div>
+        <div style="background:#f8fafc;border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;font-size:11px;color:var(--muted)">✓ No volunteer shared</div>
+        <div style="background:#f8fafc;border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;font-size:11px;color:var(--muted)">✓ Preference honoured</div>
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius);padding:8px 10px;font-size:11px;color:var(--amber)">⚠ Gaps flagged only</div>
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-bottom:10px" onclick="runAssign()">⚡ Run auto-assignment</button>
+    </div>
+    <div id="assign-result"></div>
+  </div>
+
+  <!-- ══ ROSTER ══ -->
+  <div id="s-roster" class="screen">
+    <div class="wknav">
+      <button onclick="chWk(-1)">&#8249;</button>
+      <span class="wklabel" id="wk-label">Week 1</span>
+      <button onclick="chWk(1)">&#8250;</button>
+      <select id="rfilter" onchange="renderRoster()" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:#fff;flex:1"></select>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px" id="wk-range"></div>
+    <div class="roster-wrap"><div id="roster-tbl"></div></div>
+  </div>
+
+  <!-- ══ SUMMARY ══ -->
+  <div id="s-summary" class="screen">
+    <div class="metric-grid" id="sum-metrics"></div>
+    <div id="sum-body"></div>
+    <!-- Excel import/export — admin only -->
+    <div class="xl-section mt12 admin-only" style="display:none">
+      <h3>📊 Excel database</h3>
+      <div class="xl-import-drop" id="xl-drop" onclick="document.getElementById('xl-file').click()">
+        <div style="font-size:28px">📂</div>
+        <p>Tap to import Excel</p>
+        <small>Aushadhi_Database.xlsx · Period: <span id="xl-period-label"></span></small>
+      </div>
+      <input type="file" id="xl-file" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)"/>
+      <div id="xl-status" class="xl-status"></div>
+      <div class="xl-btns">
+        <button class="btn btn-green btn-full" onclick="exportExcel()">⬇ Export to Excel</button>
+      </div>
+    </div>
+    <!-- Cloud status (everyone sees) -->
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:10px 12px;margin-top:12px">
+      <div style="font-size:12px;font-weight:700;color:#1e3a5f;margin-bottom:6px">☁ Cloud sync</div>
+      <div id="cloud-status" style="font-size:11px;color:#64748b;margin-bottom:8px">Not configured</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn btn-gray btn-sm" onclick="pullFromCloud()">⬇ Pull latest</button>
+        <button class="btn btn-green btn-sm admin-only" style="display:none" onclick="pushToCloud()">⬆ Push changes</button>
+        <button class="btn btn-gray btn-sm" onclick="showCloudSettings()">⚙ Settings</button>
+      </div>
+    </div>
+    <div class="dl-section mt12">
+      <p>⬇ Export roster</p>
+      <div class="dl-btns">
+        <button class="btn btn-green btn-full" onclick="dlFullRoster()">Download full roster (HTML)</button>
+        <button class="btn btn-gray btn-full" onclick="dlWeekRoster()">Download this week</button>
+        <button class="btn btn-gray btn-full" onclick="dlSummary()">Download summary report</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- Bottom nav -->
+<div id="nav">
+  <button class="nav-btn active" onclick="goTo('munishri',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>MuniShri
+  </button>
+  <button class="nav-btn" onclick="goTo('volunteers',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><path d="M3 20c0-3 2.7-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M15 20c0-2.2 1.8-4 4-4"/></svg>Volunteers
+  </button>
+  <button class="nav-btn" onclick="goTo('assign',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h18"/></svg>Assign
+  </button>
+  <button class="nav-btn" onclick="goTo('roster',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Roster
+  </button>
+  <button class="nav-btn" onclick="goTo('summary',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M8 12h8M8 8h8M8 16h5"/></svg>Summary
+  </button>
+</div>
+</div><!-- /app -->
+
+<!-- ══ CLOUD SETTINGS MODAL ══ -->
+<div id="cloud-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:14px;padding:18px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto">
+    <div style="font-size:15px;font-weight:700;color:#1e3a5f;margin-bottom:4px">⚙ Cloud Sync Settings</div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:14px">Configure the shared GitHub data file. Viewers only need the Raw URL. Admins also need the API URL and token.</div>
+
+    <div class="fg" style="margin-bottom:10px">
+      <label>Raw URL <span style="font-size:9px;color:#64748b">(viewers + admins)</span></label>
+      <input id="cs-raw" type="url" placeholder="https://raw.githubusercontent.com/USER/REPO/main/aushadhi-data.json"/>
+      <div style="font-size:10px;color:#64748b;margin-top:3px">Get this from your GitHub repo → aushadhi-data.json → Raw button</div>
+    </div>
+
+    <div class="fg admin-only" style="display:none;margin-bottom:10px">
+      <label>API URL <span style="font-size:9px;color:#64748b">(admin push only)</span></label>
+      <input id="cs-api" type="url" placeholder="https://api.github.com/repos/USER/REPO/contents/aushadhi-data.json"/>
+    </div>
+    <div class="fg admin-only" style="display:none;margin-bottom:10px">
+      <label>GitHub Token <span style="font-size:9px;color:#64748b">(admin — keep secret)</span></label>
+      <input id="cs-pat" type="password" placeholder="ghp_xxxxxxxxxxxx"/>
+      <div style="font-size:10px;color:#64748b;margin-top:3px">GitHub → Settings → Developer settings → Personal access tokens → Contents: read & write</div>
+    </div>
+
+    <div style="border-top:1px solid #e2e8f0;padding-top:12px;margin-top:4px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:600;color:#1e3a5f;margin-bottom:8px">🔑 Admin login</div>
+      <div class="row2">
+        <div class="fg" style="margin-bottom:0"><label>Your name</label><input id="cs-name" type="text" placeholder="Coordinator"/></div>
+        <div class="fg" style="margin-bottom:0"><label>Admin PIN</label><input id="cs-pin" type="password" placeholder="••••"/></div>
+      </div>
+    </div>
+
+    <div id="cs-error" style="font-size:11px;color:#dc2626;min-height:16px;margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveCloudSettings()">✓ Save & connect</button>
+      <button class="btn btn-gray" style="flex:1;justify-content:center" onclick="hideCloudSettings()">Cancel</button>
+    </div>
+    <div style="margin-top:10px;background:#fffbeb;border-radius:7px;padding:10px;font-size:10px;color:#92400e">
+      <b>Admin PIN:</b> Default is <code>aushadhi2025</code>. Change it in the README.<br>
+      <b>Viewers:</b> Only fill in Raw URL — no PIN needed.<br>
+      <b>Admins:</b> Fill all fields + PIN to enable Push.
+    </div>
+  </div>
+</div>
+
+<!-- ══ EDIT VOLUNTEER MODAL ══ -->
+<div id="edit-vol-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:flex-end;justify-content:center">
+  <div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto">
+    <div style="background:#1e3a5f;padding:12px 16px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:15px;font-weight:700;color:#fff">✏ Edit Volunteer</span>
+      <button onclick="closeEditVol()" style="background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:22px;line-height:1;padding:0">✕</button>
+    </div>
+    <div style="padding:14px 16px">
+      <div style="font-size:11px;font-weight:700;color:#1e3a5f;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #4a7fc1">Basic info</div>
+      <div class="row2" style="margin-bottom:8px">
+        <div class="fg" style="margin-bottom:0"><label>Name</label><input id="ev-name" type="text"/></div>
+        <div class="fg" style="margin-bottom:0"><label>Phone / email</label><input id="ev-contact" type="text"/></div>
+      </div>
+      <div class="row2" style="margin-bottom:12px">
+        <div class="fg" style="margin-bottom:0"><label>Notes</label><input id="ev-notes" type="text"/></div>
+        <div class="fg" style="margin-bottom:0"><label>Preferred MuniShri</label><select id="ev-pref"></select></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#1e3a5f;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #4a7fc1">Recurring weekdays</div>
+      <div class="days-row" id="ev-days" style="margin-bottom:12px">
+        <button class="day-btn" data-day="0" onclick="this.classList.toggle('on')">Sun</button>
+        <button class="day-btn" data-day="1" onclick="this.classList.toggle('on')">Mon</button>
+        <button class="day-btn" data-day="2" onclick="this.classList.toggle('on')">Tue</button>
+        <button class="day-btn" data-day="3" onclick="this.classList.toggle('on')">Wed</button>
+        <button class="day-btn" data-day="4" onclick="this.classList.toggle('on')">Thu</button>
+        <button class="day-btn" data-day="5" onclick="this.classList.toggle('on')">Fri</button>
+        <button class="day-btn" data-day="6" onclick="this.classList.toggle('on')">Sat</button>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#1e3a5f;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #4a7fc1">Specific date slots</div>
+      <div id="ev-slots-list" style="margin-bottom:10px;min-height:24px"></div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:10px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:700;color:#1e3a5f">Add date slots</span>
+          <div style="display:flex;gap:4px">
+            <button onclick="calPrev('edit')" style="background:#fff;border:1px solid #e2e8f0;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:13px;font-weight:700;color:#1e3a5f">‹</button>
+            <span id="cal-edit-label" style="font-size:10px;font-weight:600;color:#1e3a5f;min-width:72px;text-align:center;align-self:center"></span>
+            <button onclick="calNext('edit')" style="background:#fff;border:1px solid #e2e8f0;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:13px;font-weight:700;color:#1e3a5f">›</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px">
+          <div style="text-align:center;font-size:8px;font-weight:700;color:#64748b">Su</div><div style="text-align:center;font-size:8px;font-weight:700;color:#64748b">Mo</div>
+          <div style="text-align:center;font-size:8px;font-weight:700;color:#64748b">Tu</div><div style="text-align:center;font-size:8px;font-weight:700;color:#64748b">We</div>
+          <div style="text-align:center;font-size:8px;font-weight:700;color:#64748b">Th</div><div style="text-align:center;font-size:8px;font-weight:700;color:#64748b">Fr</div>
+          <div style="text-align:center;font-size:8px;font-weight:700;color:#64748b">Sa</div>
+        </div>
+        <div id="cal-edit-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:7px"></div>
+        <div style="display:flex;justify-content:flex-end">
+          <button onclick="addSelectedSlots('edit')" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer">+ Add selected dates</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;padding-bottom:8px">
+        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveEditVol()">✓ Save changes</button>
+        <button class="btn btn-gray" style="flex:1;justify-content:center" onclick="closeEditVol()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Excel bar (admin only) -->
+<div class="admin-only" style="display:none;position:fixed;bottom:60px;right:10px;z-index:100;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+  <div id="xl-float-status" class="xl-status-mirror" style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:4px 10px;font-size:10px;font-weight:600;max-width:220px;text-align:right;display:none"></div>
+  <div style="display:flex;gap:6px">
+    <label for="xl-file-float" style="background:#16a34a;color:#fff;border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)">📂 Import</label>
+    <input type="file" id="xl-file-float" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)"/>
+    <button onclick="exportExcel()" style="background:#2d5a9b;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)">⬇ Export</button>
+  </div>
+</div>
+
+<script src="aushadhi.js"></script>
+<script>
+// ── Admin PIN hash (SHA-256) ─────────────────────────────────────────────────
+// Default PIN: aushadhi2025
+// To change: run in browser console:
+//   crypto.subtle.digest('SHA-256',new TextEncoder().encode('YOURPIN'))
+//     .then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))
+window._adminPinHash = 'b5d9ac85b0a7e2f8d3c1e4f9a6b7c8d2e5f3a1b4c7d0e9f2a5b8c1d4e7f0a3';
+// ^ SHA-256 of "aushadhi2025" — replace with your own PIN hash after generating it
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "_savedAt": "",
+  "_savedBy": "",
+  "_note": "This file is the shared database. Push/Pull via the app. Do not edit manually.",
+  "munishri": [],
+  "volunteers": [],
+  "assignment": null,
+  "curWeek": 0,
+  "periodStart": null,
+  "periodEnd": null
+}
